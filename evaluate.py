@@ -10,6 +10,7 @@ from sklearn.pipeline import make_pipeline
 from keras import backend as K
 from keras.models import Model
 
+import matplotlib.pyplot as plt
 
 import pathlib
 import csv
@@ -19,7 +20,8 @@ import csv
 ##### INPUTS #####
 
 bit_diff = (0x0020, 0)  # Bit difference
-file = '2-plaintext_models/round6/round6bit(32, 0).h5'  # Model file location
+#file = '2-plaintext_models/round6/round6bit(32, 0).h5'  # Model file location
+file = '4-plaintext_models/round6-4_plaintext-bit(32, 0).h5'  # Model file location
 rounds = 6
 
 ##################
@@ -198,129 +200,6 @@ def real_differences_data(n, nr, diff=(0x0040,0)):
 
 ################################ NEW FUNCTIONS ################################################
 
-# Display the second-to-last layer of the model predictions
-def evaluate_model_layers_output(file, num_rounds, bit_diff):
-
-    
-    if num_rounds <= 0: raise Exception("Round value can't be less than 0")
-        
-    rnet = load_model(file)                       
-
-    X,Y = make_train_data(10**6,num_rounds, diff=bit_diff);
-    c1_xor_c2(X,Y)
-
-    intermediate_layer_model = Model(inputs=rnet.input,
-                                 outputs=[rnet.layers[-2].output, rnet.layers[-1].output])
-    intermediate_output, final_output = intermediate_layer_model.predict(X)
-
-    final_output = final_output.flatten()
-    valid_bits = intermediate_output
-    # valid_bits[intermediate_output>0] = 1
-
-    ret = np.sum(valid_bits[final_output>0.5], axis=0)/len(valid_bits[final_output>0.5])
-    print("Y=1 model layers outputs: ")
-    print(ret[:32].tolist())
-    print(ret[32:].tolist())
-    print(' --------------------------------------------------------------------------------- ')
-    
-    ret = np.sum(valid_bits[final_output<=0.5], axis=0)/len(valid_bits[final_output<=0.5])
-    print("Y=0 model layers outputs: ")
-    print(ret[:32].tolist())
-    print(ret[32:].tolist())
-    print(' --------------------------------------------------------------------------------- ')
-
-# Display the model distinct outputs 
-def check_model_outputs(file, num_rounds, bit_diff):
-
-    if num_rounds <= 0: raise Exception("Round value can't be less than 0")
-
-    rnet = load_model(file)
-
-    X,Y = make_train_data(10**6,num_rounds, diff=bit_diff)
-    Z = rnet.predict(X,batch_size=10000).flatten();
-    print("output array = ",Z)
-
-    unique, counts = np.unique(Z, return_counts=True)
-    print(dict(zip(unique, counts)))
-    print(' --------------------------------------------------------------------------------- ')
-
-# c1 xor c2 test
-def c1_xor_c2(X,Y):
-    if len(X)==0 or len(Y)==0: raise Exception("No empty arrays")
-    if len(X[0]) != 64: raise Exception("Not training dataset from 2 plaintext")
-
-    True_X = X[Y==1]
-    Random_X = X[Y==0]
-
-    print("c1_xor_c2 test: ")
-
-    for i in (True_X, Random_X):
-        left = i[:, :32]
-        right = i[:, 32:]
-        diff = left ^ right
-
-        ret = np.sum(diff, axis=0)/len(diff)
-        print(ret.tolist())
-        print(' --------------------------------------------------------------------------------- ')
-
-# c1 xor c2 test
-def c1_xor_c2_4plaintext(X,Y):
-    if len(X)==0 or len(Y)==0: raise Exception("No empty arrays")
-    if len(X[0]) != 128: raise Exception("Not training dataset from 4 plaintext")
-
-    True_X = X[Y==1]
-    Random_X = X[Y==0]
-
-    print("c1_xor_c2 test: ")
-
-    for i in (True_X, Random_X):
-
-        print("bit difference 1")
-        left = i[:, :32]
-        right = i[:, 32:64]
-        diff = left ^ right
-
-        ret = np.sum(diff, axis=0)/len(diff)
-        print(ret.tolist())
-        print(' --------------------------------------------------------------------------------- ')
-
-        print("bit difference 2")
-        left = i[:, :32]
-        right = i[:, 64:96]
-        diff = left ^ right
-
-        ret = np.sum(diff, axis=0)/len(diff)
-        print(ret.tolist())
-        print(' --------------------------------------------------------------------------------- ')
-
-        print("diagonal")
-        left = i[:, :32]
-        right = i[:, 96:]
-        diff = left ^ right
-
-        ret = np.sum(diff, axis=0)/len(diff)
-        print(ret.tolist())
-        print(' --------------------------------------------------------------------------------- ')
-
-# Normal Evaluate
-def evaluate(file,rounds,bit_diff):
-
-    if rounds <= 0: raise Exception("Round value can't be less than 0")
-
-    net = load_model(file)
-    X,Y = make_train_data(10**6,rounds,diff=bit_diff);
-    Z = net.predict(X,batch_size=10000).flatten();
-    Zbin = (Z > 0.5);
-    diff = Y - Z; mse = np.mean(diff*diff);
-    n = len(Z); n0 = np.sum(Y==0); n1 = np.sum(Y==1);
-    acc = np.sum(Zbin == Y) / n;
-    tpr = np.sum(Zbin[Y==1]) / n1;
-    tnr = np.sum(Zbin[Y==0] == 0) / n0;
-    mreal = np.median(Z[Y==1]);
-    high_random = np.sum(Z[Y==0] > mreal) / n0;
-    print("Accuracy: ", str(acc), "TPR: ", str(tpr), "TNR: ", str(tnr), "MSE:", str(mse));
-    print("Percentage of random pairs with score higher than median of real pairs:", 100*high_random);
-
 def convert_to_binary_4plaintext(arr):
 
   if len(arr) == 0: raise Exception("No empty arrays")
@@ -384,6 +263,254 @@ def make_4plaintext_train_data(n, nr, diff=(0x0040,0), diff2=(0,0)):
   X = convert_to_binary_4plaintext([ctdata0l, ctdata0r, ctdata1l, ctdata1r, ctdata2l, ctdata2r, ctdata3l, ctdata3r]);
   return(X,Y);
 
+# Display the model distinct outputs 
+def check_model_outputs(file, num_rounds, bit_diff):
+
+    if num_rounds <= 0: raise Exception("Round value can't be less than 0")
+
+    rnet = load_model(file)
+
+    X,Y = make_train_data(10**6,num_rounds, diff=bit_diff)
+    Z = rnet.predict(X,batch_size=10000).flatten();
+    print("output array = ",Z)
+
+    unique, counts = np.unique(Z, return_counts=True)
+    print(dict(zip(unique, counts)))
+    print(' --------------------------------------------------------------------------------- ')
+
+# Display the second-to-last layer of the model predictions
+def evaluate_model_layers_output(file, num_rounds, bit_diff):
+
+    
+    if num_rounds <= 0: raise Exception("Round value can't be less than 0")
+        
+    rnet = load_model(file)                       
+
+    X,Y = make_train_data(10**6,num_rounds, diff=bit_diff);
+    c1_xor_c2(X,Y)
+
+    intermediate_layer_model = Model(inputs=rnet.input,
+                                 outputs=[rnet.layers[-2].output, rnet.layers[-1].output])
+    intermediate_output, final_output = intermediate_layer_model.predict(X)
+
+    final_output = final_output.flatten()
+    valid_bits = intermediate_output
+    # valid_bits[intermediate_output>0] = 1
+
+    ret1 = np.sum(valid_bits[final_output>0.5], axis=0)/len(valid_bits[final_output>0.5])  
+    ret0 = np.sum(valid_bits[final_output<=0.5], axis=0)/len(valid_bits[final_output<=0.5])
+
+    fig = plt.figure(figsize=(12, 6))
+    ax = fig.add_subplot(111)
+    x = [i for i in range(32)]
+    ax.bar(x,ret1[:32],color='tab:blue',width=0.25)
+    ax.bar([i+0.25 for i in x],ret0[:32],color='tab:orange',width=0.25)
+    plt.xticks(x)
+    plt.xlabel("Bit Positions")
+    plt.ylabel("Significance Values")
+    plt.legend(["Y=1", "Y=0"])
+    plt.title("Average Significance in Each Bit Position for Ciphertext 1")
+    fig.savefig('model_layer_output_ciphertext1.png', dpi=100)
+
+    fig = plt.figure(figsize=(12, 6))
+    ax = fig.add_subplot(111)
+    x = [i for i in range(32)]
+    ax.bar(x,ret1[32:],color='tab:blue',width=0.25)
+    ax.bar([i+0.25 for i in x],ret0[32:],color='tab:orange',width=0.25)
+    plt.xticks(x)
+    plt.xlabel("Bit Positions")
+    plt.ylabel("Significance Values")
+    plt.legend(["Y=1", "Y=0"])
+    plt.title("Average Significance in Each Bit Position for Ciphertext 2")
+    fig.savefig('model_layer_output_ciphertext2.png', dpi=100)
+
+# Display the second-to-last layer of the model predictions
+def evaluate_4_plaintext_model_layers_output(file, num_rounds, bit_diff):
+    
+    if num_rounds <= 0: raise Exception("Round value can't be less than 0")
+    
+    rnet = load_model(file)                       
+
+    X,Y = make_4plaintext_train_data(10**6,rounds,diff2=bit_diff);
+    c1_xor_c2_4plaintext(X,Y)
+
+    intermediate_layer_model = Model(inputs=rnet.input,
+                                 outputs=[rnet.layers[-2].output, rnet.layers[-1].output])
+    intermediate_output, final_output = intermediate_layer_model.predict(X)
+
+    final_output = final_output.flatten()
+    valid_bits = intermediate_output
+
+    ret1 = np.sum(valid_bits[final_output>0.5], axis=0)/len(valid_bits[final_output>0.5])
+    ret0 = np.sum(valid_bits[final_output<=0.5], axis=0)/len(valid_bits[final_output<=0.5])
+
+    fig = plt.figure(figsize=(12, 6))
+    ax = fig.add_subplot(111)
+    x = [i for i in range(32)]
+    ax.bar(x,ret1[:32],color='tab:blue',width=0.25)
+    ax.bar([i+0.25 for i in x],ret0[:32],color='tab:orange',width=0.25)
+    plt.xticks(x)
+    plt.xlabel("Bit Positions")
+    plt.ylabel("Significance Values")
+    plt.legend(["Y=1", "Y=0"])
+    plt.title("Average Significance in Each Bit Position for Ciphertext 1")
+    fig.savefig('model_layer_output_ciphertext1.png', dpi=100)
+
+    fig = plt.figure(figsize=(12, 6))
+    ax = fig.add_subplot(111)
+    x = [i for i in range(32)]
+    ax.bar(x,ret1[32:64],color='tab:blue',width=0.25)
+    ax.bar([i+0.25 for i in x],ret0[32:64],color='tab:orange',width=0.25)
+    plt.xticks(x)
+    plt.xlabel("Bit Positions")
+    plt.ylabel("Significance Values")
+    plt.legend(["Y=1", "Y=0"])
+    plt.title("Average Significance in Each Bit Position for Ciphertext 2")
+    fig.savefig('model_layer_output_ciphertext2.png', dpi=100)
+
+    fig = plt.figure(figsize=(12, 6))
+    ax = fig.add_subplot(111)
+    x = [i for i in range(32)]
+    ax.bar(x,ret1[64:96],color='tab:blue',width=0.25)
+    ax.bar([i+0.25 for i in x],ret0[64:96],color='tab:orange',width=0.25)
+    plt.xticks(x)
+    plt.xlabel("Bit Positions")
+    plt.ylabel("Significance Values")
+    plt.legend(["Y=1", "Y=0"])
+    plt.title("Average Significance in Each Bit Position for Ciphertext 3")
+    fig.savefig('model_layer_output_ciphertext3.png', dpi=100)
+
+    fig = plt.figure(figsize=(12, 6))
+    ax = fig.add_subplot(111)
+    x = [i for i in range(32)]
+    ax.bar(x,ret1[96:],color='tab:blue',width=0.25)
+    ax.bar([i+0.25 for i in x],ret0[96:],color='tab:orange',width=0.25)
+    plt.xticks(x)
+    plt.xlabel("Bit Positions")
+    plt.ylabel("Significance Values")
+    plt.legend(["Y=1", "Y=0"])
+    plt.title("Average Significance in Each Bit Position for Ciphertext 4")
+    fig.savefig('model_layer_output_ciphertext4.png', dpi=100)
+    
+
+# c1 xor c2 test
+def c1_xor_c2(X,Y):
+    if len(X)==0 or len(Y)==0: raise Exception("No empty arrays")
+    if len(X[0]) != 64: raise Exception("Not training dataset from 2 plaintext")
+
+    True_X = X[Y==1]
+    Random_X = X[Y==0]
+
+    data = []
+    for i in (True_X, Random_X):
+        left = i[:, :32]
+        right = i[:, 32:]
+        diff = left ^ right
+
+        ret = np.sum(diff, axis=0)/len(diff)
+        data.append(ret)
+
+    fig = plt.figure(figsize=(12, 6))
+    ax = fig.add_subplot(111)
+    x = [i for i in range(32)]
+    ax.bar(x,data[0],color='tab:blue',width=0.25)
+    ax.bar([i+0.25 for i in x],data[1],color='tab:orange',width=0.25)
+    plt.xticks(x)
+    plt.xlabel("Bit Positions")
+    plt.ylabel("Average Occurence of Differences in Bit Position")
+    plt.legend(["Y=1", "Y=0"], loc='lower right')
+    plt.title("C1 xor C2")
+    fig.savefig('c1_xor_c2.png', dpi=100)
+    
+# c1 xor c2 test
+def c1_xor_c2_4plaintext(X,Y):
+    if len(X)==0 or len(Y)==0: raise Exception("No empty arrays")
+    if len(X[0]) != 128: raise Exception("Not training dataset from 4 plaintext")
+
+    True_X = X[Y==1]
+    Random_X = X[Y==0]
+
+    data = []
+    for i in (True_X, Random_X):
+
+        left = i[:, :32]
+        right = i[:, 32:64]
+        diff = left ^ right
+
+        ret = np.sum(diff, axis=0)/len(diff)
+        data.append(ret)
+        
+        left = i[:, :32]
+        right = i[:, 64:96]
+        diff = left ^ right
+
+        ret = np.sum(diff, axis=0)/len(diff)
+        data.append(ret)
+        
+        left = i[:, :32]
+        right = i[:, 96:]
+        diff = left ^ right
+
+        ret = np.sum(diff, axis=0)/len(diff)
+        data.append(ret)
+
+    fig = plt.figure(figsize=(12, 6))
+    ax = fig.add_subplot(111)
+    x = [i for i in range(32)]
+    ax.bar(x,data[0],color='tab:blue',width=0.25)
+    ax.bar([i+0.25 for i in x],data[3],color='tab:orange',width=0.25)
+    plt.xticks(x)
+    plt.xlabel("Bit Positions")
+    plt.ylabel("Average Occurence of Differences in Bit Position")
+    plt.legend(["Y=1", "Y=0"], loc='lower right')
+    plt.title("C1 xor C2 for Bit Difference 1")
+    fig.savefig('c1_xor_c2.png', dpi=100)
+
+    fig = plt.figure(figsize=(12, 6))
+    ax = fig.add_subplot(111)
+    x = [i for i in range(32)]
+    ax.bar(x,data[1],color='tab:blue',width=0.25)
+    ax.bar([i+0.25 for i in x],data[4],color='tab:orange',width=0.25)
+    plt.xticks(x)
+    plt.xlabel("Bit Positions")
+    plt.ylabel("Average Occurence of Differences in Bit Position")
+    plt.legend(["Y=1", "Y=0"], loc='lower right')
+    plt.title("C1 xor C3 for Bit Difference 2")
+    fig.savefig('c1_xor_c3.png', dpi=100)
+
+    fig = plt.figure(figsize=(12, 6))
+    ax = fig.add_subplot(111)
+    x = [i for i in range(32)]
+    ax.bar(x,data[2],color='tab:blue',width=0.25)
+    ax.bar([i+0.25 for i in x],data[5],color='tab:orange',width=0.25)
+    plt.xticks(x)
+    plt.xlabel("Bit Positions")
+    plt.ylabel("Average Occurence of Differences in Bit Position")
+    plt.legend(["Y=1", "Y=0"], loc='lower right')
+    plt.title("C1 xor C4 for Both Bit Differences")
+    fig.savefig('c1_xor_c4.png', dpi=100)
+
+    
+# Normal Evaluate
+def evaluate(file,rounds,bit_diff):
+
+    if rounds <= 0: raise Exception("Round value can't be less than 0")
+
+    net = load_model(file)
+    X,Y = make_train_data(10**6,rounds,diff=bit_diff);
+    Z = net.predict(X,batch_size=10000).flatten();
+    Zbin = (Z > 0.5);
+    diff = Y - Z; mse = np.mean(diff*diff);
+    n = len(Z); n0 = np.sum(Y==0); n1 = np.sum(Y==1);
+    acc = np.sum(Zbin == Y) / n;
+    tpr = np.sum(Zbin[Y==1]) / n1;
+    tnr = np.sum(Zbin[Y==0] == 0) / n0;
+    mreal = np.median(Z[Y==1]);
+    high_random = np.sum(Z[Y==0] > mreal) / n0;
+    print("Accuracy: ", str(acc), "TPR: ", str(tpr), "TNR: ", str(tnr), "MSE:", str(mse));
+    print("Percentage of random pairs with score higher than median of real pairs:", 100*high_random);
+
+
 # 4-plaintext evaluate
 def evaluate_4_plaintext(file, rounds, bit_diff):
 
@@ -403,39 +530,9 @@ def evaluate_4_plaintext(file, rounds, bit_diff):
     print("Accuracy: ", str(acc), "TPR: ", str(tpr), "TNR: ", str(tnr), "MSE:", str(mse));
     print("Percentage of random pairs with score higher than median of real pairs:", 100*high_random);
 
-# Display the second-to-last layer of the model predictions
-def evaluate_4_plaintext_model_layers_output(file, num_rounds, bit_diff):
+
+
     
-    if num_rounds <= 0: raise Exception("Round value can't be less than 0")
-    
-    rnet = load_model(file)                       
-
-    X,Y = make_4plaintext_train_data(10**6,rounds,diff2=bit_diff);
-    c1_xor_c2_4plaintext(X,Y)
-
-    intermediate_layer_model = Model(inputs=rnet.input,
-                                 outputs=[rnet.layers[-2].output, rnet.layers[-1].output])
-    intermediate_output, final_output = intermediate_layer_model.predict(X)
-
-    final_output = final_output.flatten()
-    valid_bits = intermediate_output
-
-    ret = np.sum(valid_bits[final_output>0.5], axis=0)/len(valid_bits[final_output>0.5])
-    print("Y=1 model layers outputs: ")
-    print(ret[:32].tolist())
-    print(ret[32:64].tolist())
-    print(ret[64:96].tolist())
-    print(ret[96:].tolist())
-    print(' --------------------------------------------------------------------------------- ')
-    
-    ret = np.sum(valid_bits[final_output<=0.5], axis=0)/len(valid_bits[final_output<=0.5])
-    print("Y=0 model layers outputs: ")
-    print(ret[:32].tolist())
-    print(ret[32:64].tolist())
-    print(ret[64:96].tolist())
-    print(ret[96:].tolist())
-    print(' --------------------------------------------------------------------------------- ')
-
-evaluate_model_layers_output(file, rounds, bit_diff)
-#evaluate_4_plaintext_model_layers_output(file, rounds, bit_diff)
+#evaluate_model_layers_output(file, rounds, bit_diff)
+evaluate_4_plaintext_model_layers_output(file, rounds, bit_diff)
 
