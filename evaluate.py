@@ -5,7 +5,6 @@ from keras.callbacks import LearningRateScheduler, ModelCheckpoint, CSVLogger
 from pickle import dump
 
 from lime.lime_text import LimeTextExplainer
-from sklearn.pipeline import make_pipeline
 
 from keras import backend as K
 from keras.models import Model
