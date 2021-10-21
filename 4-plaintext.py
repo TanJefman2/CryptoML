@@ -202,7 +202,7 @@ def cyclic_lr(num_epochs, high_lr, low_lr):
   return(res);
 
 #make residual tower of convolutional blocks
-def make_resnet(num_blocks=2, num_filters=32, num_outputs=1, d1=64, d2=64, word_size=16, ks=3,depth=5, reg_param=0.0001, final_activation='sigmoid'):
+def make_resnet(num_blocks=2, num_filters=32, num_outputs=1, d1=128, d2=128, word_size=16, ks=3,depth=5, reg_param=0.0001, final_activation='sigmoid'):
   #Input and preprocessing layers
   inp = Input(shape=(num_blocks * word_size * 4,));
   rs = Reshape((4 * num_blocks, word_size))(inp);
