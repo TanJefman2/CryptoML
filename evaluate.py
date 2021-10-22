@@ -19,7 +19,6 @@ import csv
 ##### INPUTS #####
 
 bit_diff = (0x0020, 0)  # Bit difference
-#file = '2-plaintext_models/round6/round6bit(32, 0).h5'  # Model file location
 file = '4-plaintext_models/round6-4_plaintext-bit(32, 0).h5'  # Model file location
 rounds = 6
 
@@ -261,13 +260,16 @@ def make_4plaintext_train_data(n, nr, diff=(0x0040,0), diff2=(0,0)):
   plain3l[Y==0] = np.frombuffer(urandom(2*num_rand_samples),dtype=np.uint16);
   plain3r[Y==0] = np.frombuffer(urandom(2*num_rand_samples),dtype=np.uint16);
 
+  # generate key
   ks = expand_key(keys, nr);
 
+  # encryption
   ctdata0l, ctdata0r = encrypt((plain0l, plain0r), ks);
   ctdata1l, ctdata1r = encrypt((plain1l, plain1r), ks);
   ctdata2l, ctdata2r = encrypt((plain2l, plain2r), ks);
   ctdata3l, ctdata3r = encrypt((plain3l, plain3r), ks);
   
+  # data pre-processing
   X = convert_to_binary_4plaintext([ctdata0l, ctdata0r, ctdata1l, ctdata1r, ctdata2l, ctdata2r, ctdata3l, ctdata3r]);
   return(X,Y);
 
@@ -282,10 +284,12 @@ def check_model_outputs(file, num_rounds, bit_diff):
 
     rnet = load_model(file)
 
+    # make model predictions
     X,Y = make_train_data(10**6,num_rounds, diff=bit_diff)
     Z = rnet.predict(X,batch_size=10000).flatten();
     print("output array = ",Z)
 
+    # count unique values
     unique, counts = np.unique(Z, return_counts=True)
     print(dict(zip(unique, counts)))
     print(' --------------------------------------------------------------------------------- ')
@@ -300,22 +304,27 @@ def evaluate_model_layers_output(file, num_rounds, bit_diff):
     
     if num_rounds <= 0: raise Exception("Round value can't be less than 0")
         
+    # load model
     rnet = load_model(file)                       
 
+    # generate test dataset
     X,Y = make_train_data(10**6,num_rounds, diff=bit_diff);
     c1_xor_c2(X,Y)
 
+    # extract outputs from second to last model layer
     intermediate_layer_model = Model(inputs=rnet.input,
                                  outputs=[rnet.layers[-2].output, rnet.layers[-1].output])
     intermediate_output, final_output = intermediate_layer_model.predict(X)
 
+    # flatten the outputs
     final_output = final_output.flatten()
     valid_bits = intermediate_output
-    # valid_bits[intermediate_output>0] = 1
 
+    # average all values in bit positions throughout the dataset
     ret1 = np.sum(valid_bits[final_output>0.5], axis=0)/len(valid_bits[final_output>0.5])  
     ret0 = np.sum(valid_bits[final_output<=0.5], axis=0)/len(valid_bits[final_output<=0.5])
 
+    # plot visualization for ciphertext 1
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
     x = [i for i in range(32)]
@@ -328,6 +337,7 @@ def evaluate_model_layers_output(file, num_rounds, bit_diff):
     plt.title("Average Significance in Each Bit Position for Ciphertext 1")
     fig.savefig('model_layer_output_ciphertext1.png', dpi=100)
 
+    # plot visualization for ciphertext 2
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
     x = [i for i in range(32)]
@@ -349,21 +359,27 @@ def evaluate_4_plaintext_model_layers_output(file, num_rounds, bit_diff):
     """
     if num_rounds <= 0: raise Exception("Round value can't be less than 0")
     
+    # load model
     rnet = load_model(file)                       
 
+    # generate test dataset
     X,Y = make_4plaintext_train_data(10**6,rounds,diff2=bit_diff);
     c1_xor_c2_4plaintext(X,Y)
 
+    # extract outputs from second to last model layer
     intermediate_layer_model = Model(inputs=rnet.input,
                                  outputs=[rnet.layers[-2].output, rnet.layers[-1].output])
     intermediate_output, final_output = intermediate_layer_model.predict(X)
 
+    # flatten the outputs
     final_output = final_output.flatten()
     valid_bits = intermediate_output
 
+    # average all values in bit positions throughout the dataset
     ret1 = np.sum(valid_bits[final_output>0.5], axis=0)/len(valid_bits[final_output>0.5])
     ret0 = np.sum(valid_bits[final_output<=0.5], axis=0)/len(valid_bits[final_output<=0.5])
 
+    # plot visualization for ciphertext 1
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
     x = [i for i in range(32)]
@@ -376,6 +392,7 @@ def evaluate_4_plaintext_model_layers_output(file, num_rounds, bit_diff):
     plt.title("Average Significance in Each Bit Position for Ciphertext 1")
     fig.savefig('model_layer_output_ciphertext1.png', dpi=100)
 
+    # plot visualization for ciphertext 2
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
     x = [i for i in range(32)]
@@ -388,6 +405,7 @@ def evaluate_4_plaintext_model_layers_output(file, num_rounds, bit_diff):
     plt.title("Average Significance in Each Bit Position for Ciphertext 2")
     fig.savefig('model_layer_output_ciphertext2.png', dpi=100)
 
+    # plot visualization for ciphertext 3
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
     x = [i for i in range(32)]
@@ -400,6 +418,7 @@ def evaluate_4_plaintext_model_layers_output(file, num_rounds, bit_diff):
     plt.title("Average Significance in Each Bit Position for Ciphertext 3")
     fig.savefig('model_layer_output_ciphertext3.png', dpi=100)
 
+    # plot visualization for ciphertext 4
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
     x = [i for i in range(32)]
@@ -427,14 +446,17 @@ def c1_xor_c2(X,Y):
     Random_X = X[Y==0]
 
     data = []
+    # Y=1 and Y=0
     for i in (True_X, Random_X):
         left = i[:, :32]
         right = i[:, 32:]
         diff = left ^ right
 
+        # Average occurences
         ret = np.sum(diff, axis=0)/len(diff)
         data.append(ret)
 
+    # plot visualization for c1_xor_c2
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
     x = [i for i in range(32)]
@@ -461,8 +483,11 @@ def c1_xor_c2_4plaintext(X,Y):
     Random_X = X[Y==0]
 
     data = []
+    # Y=1 and Y=0
     for i in (True_X, Random_X):
 
+        
+        # Average occurences between c1 and c2
         left = i[:, :32]
         right = i[:, 32:64]
         diff = left ^ right
@@ -470,6 +495,7 @@ def c1_xor_c2_4plaintext(X,Y):
         ret = np.sum(diff, axis=0)/len(diff)
         data.append(ret)
         
+        # Average occurences between c1 and c3
         left = i[:, :32]
         right = i[:, 64:96]
         diff = left ^ right
@@ -477,6 +503,7 @@ def c1_xor_c2_4plaintext(X,Y):
         ret = np.sum(diff, axis=0)/len(diff)
         data.append(ret)
         
+        # Average occurences between c1 and c4
         left = i[:, :32]
         right = i[:, 96:]
         diff = left ^ right
@@ -484,6 +511,7 @@ def c1_xor_c2_4plaintext(X,Y):
         ret = np.sum(diff, axis=0)/len(diff)
         data.append(ret)
 
+    # plot visualization for c1_xor_c2
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
     x = [i for i in range(32)]
@@ -496,6 +524,7 @@ def c1_xor_c2_4plaintext(X,Y):
     plt.title("C1 xor C2 for Bit Difference 1")
     fig.savefig('c1_xor_c2.png', dpi=100)
 
+    # plot visualization for c1_xor_c3
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
     x = [i for i in range(32)]
@@ -508,6 +537,7 @@ def c1_xor_c2_4plaintext(X,Y):
     plt.title("C1 xor C3 for Bit Difference 2")
     fig.savefig('c1_xor_c3.png', dpi=100)
 
+    # plot visualization for c1_xor_c4
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(111)
     x = [i for i in range(32)]
@@ -529,13 +559,18 @@ def evaluate(file,rounds,bit_diff):
     Returns: Prints the performances of the model
     """
     if rounds <= 0: raise Exception("Round value can't be less than 0")
-
+    # load model
     net = load_model(file)
+    # generate test dataset
     X,Y = make_train_data(10**6,rounds,diff=bit_diff);
+    # make model predictions
     Z = net.predict(X,batch_size=10000).flatten();
+    # only >0.5 counted as Y=1
     Zbin = (Z > 0.5);
+    # calculate mse
     diff = Y - Z; mse = np.mean(diff*diff);
     n = len(Z); n0 = np.sum(Y==0); n1 = np.sum(Y==1);
+    # calculate acc/tpr/tnr
     acc = np.sum(Zbin == Y) / n;
     tpr = np.sum(Zbin[Y==1]) / n1;
     tnr = np.sum(Zbin[Y==0] == 0) / n0;
@@ -553,13 +588,18 @@ def evaluate_4_plaintext(file, rounds, bit_diff):
     Returns: Prints the performances of the model
     """
     if rounds <= 0: raise Exception("Round value can't be less than 0")
-
+    # load model
     net = load_model(file)
+    # generate test dataset
     X,Y = make_4plaintext_train_data(10**6,rounds,diff2=bit_diff);
+    # make model predictions
     Z = net.predict(X,batch_size=10000).flatten();
+    # only >0.5 counted as Y=1
     Zbin = (Z > 0.5);
+    # calculate mse
     diff = Y - Z; mse = np.mean(diff*diff);
     n = len(Z); n0 = np.sum(Y==0); n1 = np.sum(Y==1);
+    # calculate acc/tpr/tnr
     acc = np.sum(Zbin == Y) / n;
     tpr = np.sum(Zbin[Y==1]) / n1;
     tnr = np.sum(Zbin[Y==0] == 0) / n0;

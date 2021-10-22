@@ -293,10 +293,14 @@ def evaluate(f, rnet, bit_diff, num_rounds):
         Inputs: Model, Test dataset X and Y
         Returns: None
         """
+        # make model predictions
         Z = net.predict(X,batch_size=10000).flatten();
+        # only >0.5 counted as Y=1
         Zbin = (Z > 0.5);
+        # calculate mse
         diff = Y - Z; mse = np.mean(diff*diff);
         n = len(Z); n0 = np.sum(Y==0); n1 = np.sum(Y==1);
+        # calculate acc/tpr/tnr
         acc = np.sum(Zbin == Y) / n;
         tpr = np.sum(Zbin[Y==1]) / n1;
         tnr = np.sum(Zbin[Y==0] == 0) / n0;
@@ -307,6 +311,7 @@ def evaluate(f, rnet, bit_diff, num_rounds):
 
     f.writelines("\nBit Difference: "+str(bit_diff)+"\n")
 
+    # generate test dataset
     X,Y = make_train_data(10**6,num_rounds,diff=bit_diff);
     X5r, Y5r = real_differences_data(10**6,num_rounds,diff=bit_diff);
 
@@ -349,10 +354,12 @@ def run(num_rounds):
     model_file = None
     initial_epoch = 0
 
+    # if text file ended with "----------", means model training done
     if done_check is not None:
       print("Already done running all test cases. Please remove all content in the text file if you want to re-run")
       return 
 
+    # if text file ended with ">(any number)", means model still in training
     elif train_check is not None:
       start = train_check
       last_epoch = read_log()+1
@@ -360,6 +367,7 @@ def run(num_rounds):
         eval_check = start
       initial_epoch = last_epoch
       
+    # if text file ended with "=(Best validation accuracy)", means model is finished training but not evaluated yet
     if eval_check is not None:
       start = eval_check
       model_file = get_model_file_name(num_rounds, bit_differences[start])
@@ -368,6 +376,7 @@ def run(num_rounds):
         
         f.writelines("+++++++++++++++++++++++++++++++++++++\n")
 
+        # pipeline bit differences
         for i in range(start, len(bit_differences)):
         
             f.writelines(">"+str(i)+"\n")
