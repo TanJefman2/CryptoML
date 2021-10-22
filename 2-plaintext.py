@@ -185,7 +185,7 @@ def real_differences_data(n, nr, diff=(0x0040,0)):
 ##########################################################################################
 
 ################################# GOHR'S TRAIN_NETS.PY ###########################################
-# CODE RETRIEVED FROM: https://github.com/agohr/deep_speck/blob/master/speck.py
+# CODE RETRIEVED FROM: https://github.com/agohr/deep_speck/blob/master/train_nets.py
 
 def cyclic_lr(num_epochs, high_lr, low_lr):
   res = lambda i: low_lr + ((num_epochs-1) - i % num_epochs)/(num_epochs-1) * (high_lr - low_lr);
