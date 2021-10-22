@@ -26,6 +26,7 @@ num_rounds = 5
 
 
 ################################ GOHR'S SPECK.PY ################################################
+# CODE RETRIEVED FROM: https://github.com/agohr/deep_speck/blob/master/speck.py
 
 def WORD_SIZE():
     return(16);
@@ -147,26 +148,6 @@ def readcsv(datei):
     Y = np.array(Y, dtype=np.uint8); Z = np.array(Z);
     return(X,Y,Z);
 
-#baseline training data generator
-# n = data size, nr = , diff = bit difference
-# & is bitwise-AND, ^ is bitwise-XOR
-# def make_train_data(n, nr, diff=(0x0040,0)):
-#   Y = np.frombuffer(urandom(n), dtype=np.uint8); Y = Y & 1;
-#   keys = np.frombuffer(urandom(8*n),dtype=np.uint16).reshape(4,-1);
-#   plain0l = np.frombuffer(urandom(2*n),dtype=np.uint16);
-#   plain0r = np.frombuffer(urandom(2*n),dtype=np.uint16);
-#   plain1l = plain0l ^ diff[0]; plain1r = plain0r ^ diff[1];
-#   num_rand_samples = np.sum(Y==0);
-#   plain1l[Y==0] = np.frombuffer(urandom(2*num_rand_samples),dtype=np.uint16);
-#   plain1r[Y==0] = np.frombuffer(urandom(2*num_rand_samples),dtype=np.uint16);
-#   ks = expand_key(keys, nr);
-
-#   # why 01 and 0r?
-#   ctdata0l, ctdata0r = encrypt((plain0l, plain0r), ks);
-#   ctdata1l, ctdata1r = encrypt((plain1l, plain1r), ks);
-#   X = convert_to_binary([ctdata0l, ctdata0r, ctdata1l, ctdata1r]);
-#   return(X,Y);
-
 #real differences data generator
 def real_differences_data(n, nr, diff=(0x0040,0)):
   #generate labels
@@ -195,7 +176,8 @@ def real_differences_data(n, nr, diff=(0x0040,0)):
 
 ##########################################################################################
 
-################################# GOHR'S TRAIN_NET.PY ###########################################
+################################# GOHR'S TRAIN_NETS.PY ###########################################
+# CODE RETRIEVED FROM: https://github.com/agohr/deep_speck/blob/master/train_nets.py
 
 def cyclic_lr(num_epochs, high_lr, low_lr):
   res = lambda i: low_lr + ((num_epochs-1) - i % num_epochs)/(num_epochs-1) * (high_lr - low_lr);
