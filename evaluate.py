@@ -28,6 +28,7 @@ rounds = 6
 
 
 ################################ GOHR'S SPECK.PY ################################################
+# CODE RETRIEVED FROM: https://github.com/agohr/deep_speck/blob/master/speck.py
 
 def WORD_SIZE():
     return(16);
