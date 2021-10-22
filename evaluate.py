@@ -201,7 +201,11 @@ def real_differences_data(n, nr, diff=(0x0040,0)):
 ################################ NEW FUNCTIONS ################################################
 
 def convert_to_binary_4plaintext(arr):
-
+  """
+  Pre-process the dataset by converting the numbers to binary and combine them into a single line of binary values (for 4-plaintext)
+  Inputs: Array of dataset
+  Returns: Processed dataset
+  """
   if len(arr) == 0: raise Exception("No empty arrays")
   # (8x16, dataset_size)
   X = np.zeros((8 * WORD_SIZE(),len(arr[0])),dtype=np.uint8);
@@ -223,7 +227,11 @@ def convert_to_binary_4plaintext(arr):
   return(X);
 
 def make_4plaintext_train_data(n, nr, diff=(0x0040,0), diff2=(0,0)):
-
+  """
+  Generate training/validation/testing dataset for 4-plaintext scenario
+  Inputs: Dataset size, Number of rounds, Bit difference 1, Bit difference 2
+  Returns: Dataset X and Y
+  """
   if nr <= 0: raise Exception("Round value can't be less than 0")
     # & means bitwise-AND, what happen here is random generate numbers e.g. 10010110, and AND with 1, so will get last bit random 1 1 0 0 1....
   Y = np.frombuffer(urandom(n), dtype=np.uint8); Y = Y & 1;
@@ -265,7 +273,11 @@ def make_4plaintext_train_data(n, nr, diff=(0x0040,0), diff2=(0,0)):
 
 # Display the model distinct outputs 
 def check_model_outputs(file, num_rounds, bit_diff):
-
+    """
+    Check distinct outputs from a model prediction
+    Inputs: Model file name, Number of rounds, Bit difference
+    Returns: Prints a line of values counting by their occurence in the predictions
+    """
     if num_rounds <= 0: raise Exception("Round value can't be less than 0")
 
     rnet = load_model(file)
@@ -280,7 +292,11 @@ def check_model_outputs(file, num_rounds, bit_diff):
 
 # Display the second-to-last layer of the model predictions
 def evaluate_model_layers_output(file, num_rounds, bit_diff):
-
+    """
+    Visualize the second to last layer from the model (for 2-plaintext)
+    Inputs: Model file name, Number of rounds, Bit difference
+    Returns: 2 png formats of visualization based on the model layer outputs
+    """
     
     if num_rounds <= 0: raise Exception("Round value can't be less than 0")
         
@@ -326,7 +342,11 @@ def evaluate_model_layers_output(file, num_rounds, bit_diff):
 
 # Display the second-to-last layer of the model predictions
 def evaluate_4_plaintext_model_layers_output(file, num_rounds, bit_diff):
-    
+    """
+    Visualize the second to last layer from the model (for 4-plaintext)
+    Inputs: Model file name, Number of rounds, Bit difference
+    Returns: 4 png formats of visualization based on the model layer outputs
+    """
     if num_rounds <= 0: raise Exception("Round value can't be less than 0")
     
     rnet = load_model(file)                       
@@ -395,6 +415,11 @@ def evaluate_4_plaintext_model_layers_output(file, num_rounds, bit_diff):
 
 # c1 xor c2 test
 def c1_xor_c2(X,Y):
+    """
+    Conduct c1-xor-c2 analysis on the training dataset (for 2-plaintext)
+    Inputs: Dataset of X and Y
+    Returns: 1 png format of visualization based on the c1-xor-c2 analysis
+    """
     if len(X)==0 or len(Y)==0: raise Exception("No empty arrays")
     if len(X[0]) != 64: raise Exception("Not training dataset from 2 plaintext")
 
@@ -424,6 +449,11 @@ def c1_xor_c2(X,Y):
     
 # c1 xor c2 test
 def c1_xor_c2_4plaintext(X,Y):
+    """
+    Conduct c1-xor-c2 analysis on the training dataset (for 4-plaintext)
+    Inputs: Dataset of X and Y
+    Returns: 3 png format of visualization based on the c1-xor-c2 analysis
+    """
     if len(X)==0 or len(Y)==0: raise Exception("No empty arrays")
     if len(X[0]) != 128: raise Exception("Not training dataset from 4 plaintext")
 
@@ -493,7 +523,11 @@ def c1_xor_c2_4plaintext(X,Y):
     
 # Normal Evaluate
 def evaluate(file,rounds,bit_diff):
-
+    """
+    Evaluate model (accuracy, TPR, TNR, MSE) for 2-plaintext
+    Inputs: Model file name, Number of rounds, Bit difference
+    Returns: Prints the performances of the model
+    """
     if rounds <= 0: raise Exception("Round value can't be less than 0")
 
     net = load_model(file)
@@ -513,7 +547,11 @@ def evaluate(file,rounds,bit_diff):
 
 # 4-plaintext evaluate
 def evaluate_4_plaintext(file, rounds, bit_diff):
-
+    """
+    Evaluate model (accuracy, TPR, TNR, MSE) for 4-plaintext
+    Inputs: Model file name, Number of rounds, Bit difference
+    Returns: Prints the performances of the model
+    """
     if rounds <= 0: raise Exception("Round value can't be less than 0")
 
     net = load_model(file)

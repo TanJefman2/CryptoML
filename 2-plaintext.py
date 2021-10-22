@@ -5,7 +5,6 @@ from keras.callbacks import LearningRateScheduler, ModelCheckpoint, CSVLogger
 from pickle import dump
 
 from keras.models import Model
-from keras.optimizers import Adam
 from keras.layers import Dense, Conv1D, Input, Reshape, Permute, Add, Flatten, BatchNormalization, Activation
 from keras import backend as K
 from keras.regularizers import l2
@@ -236,10 +235,19 @@ def make_checkpoint(datei):
 
 # Model file name
 def get_model_file_name(num_rounds, bit):
+  """
+  Generate file name convention for the models
+  Inputs: Number of rounds, Bit difference
+  Returns: String containing the model file name
+  """
   return 'round'+str(num_rounds)+'bit'+str(bit)+'.h5'
 
 def train_speck_distinguisher(bit_diff, num_epochs, num_rounds, depth=1, initial_epoch=0):
-
+    """
+    Train model
+    Inputs: Bit difference, Number of epochs, Number of rounds, Depth, Initial epoch (which epoch the model starts training from)
+    Returns: Model, A string containing the best validation accuracy from the training
+    """
     bs = 5000;
     #generate training and validation data
     X, Y = make_train_data(10**7,num_rounds, bit_diff);
@@ -273,8 +281,18 @@ def train_speck_distinguisher(bit_diff, num_epochs, num_rounds, depth=1, initial
     return(net, np.max(h.history['val_acc']));
 
 def evaluate(f, rnet, bit_diff, num_rounds):
+    """
+    Evaluate and record the model performance in specified text file
+    Inputs: File to write, Model, Bit difference, Number of rounds
+    Returns: None
+    """
 
     def eval(net,X,Y):
+        """
+        Evaluate the model performance
+        Inputs: Model, Test dataset X and Y
+        Returns: None
+        """
         Z = net.predict(X,batch_size=10000).flatten();
         Zbin = (Z > 0.5);
         diff = Y - Z; mse = np.mean(diff*diff);
@@ -300,13 +318,23 @@ def evaluate(f, rnet, bit_diff, num_rounds):
 
 # Read history.csv file to get latest epoch
 def read_log():
+  """
+  Read history.csv file to get latest trained epoch
+  Inputs: None
+  Returns: Epoch number
+  """
   with pathlib.Path(main_wdir+"logs/history.csv").open() as fp:
     data = list(csv.DictReader(fp)) 
     ret = int(data[-1]['epoch']) if len(data)>0 else 0
     return ret
 
 def run(num_rounds):
-
+    """
+    The main function. Used to pipeline all the bit differences for model training and evaluation in one process.
+    The results are recorded in a text file.
+    Inputs: Number of rounds
+    Returns: Text file that contains the evaluation from the model training
+    """
     # Log file name
     log_file = main_wdir+'analysis_round'+str(num_rounds)+'.txt'
 
@@ -361,7 +389,11 @@ def run(num_rounds):
 
 # Check log file progress
 def check_progress(filename):
-
+  """
+  Check the model training progress through the text file
+  Inputs: Text file
+  Returns: Train_check, Eval_check, Done_check indicating the progress of the overall model training
+  """
   eval_check = None
   train_check = None
   done_check = None
